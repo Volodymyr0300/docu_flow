@@ -1,8 +1,12 @@
-use axum::{extract, routing::{get, post}, Json, Router};
+use axum::{
+    extract::State,
+    routing::{get, post},
+    Json,
+    Router
+};
 use std::fmt;
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 use std::sync::{Arc, RwLock};
-use axum::extract::State;
 
 struct AppState {
     docs: RwLock<Vec<Document>>,
@@ -18,7 +22,8 @@ async fn main() {
 
     let app = Router::new()
         .route("/", get(root))
-        .route("/doc", get(list_docs))
+        .route("/docs", get(list_docs))
+        .route("/docs", post(create_doc))
         .with_state(shared_state);
 
     let address = format!("0.0.0.0:{}", args.port);
@@ -35,18 +40,21 @@ async fn list_docs(State(state): State<Arc<AppState>>, ) -> Json<Vec<Document>> 
     Json(docs.clone())
 }
 
-async fn get_doc() -> Json<Document> {
-    let doc = Document {
-        id: 1,
-        title: String::from("Privacy Policy Update"),
-        status: DocStatus::Reviewed,
-    };
-
-    Json(doc)
-}
-
 async fn root() -> &'static str {
     "Welcome to DocuFlow: Legal Audit Log System"
+}
+
+async fn create_doc(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<Document>,
+) -> Json<Document> {
+    let mut docs = state.docs.write().unwrap();
+
+    docs.push(payload.clone());
+    
+    println!("✅ Document added: {}", payload.title);
+
+    Json(payload)
 }
 
 use clap::Parser;
@@ -62,14 +70,14 @@ struct Args {
 }
 
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 enum DocStatus {
     Draft,
     Reviewed,
     Signed
 }
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 struct Document {
     id: u32,
     title: String,
