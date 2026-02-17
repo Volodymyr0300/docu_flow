@@ -4,20 +4,37 @@ use axum::{
     Json,
     Router
 };
-use std::fmt;
+use clap::Parser;
 use serde::{Serialize, Deserialize};
-use std::sync::{Arc, RwLock};
+use sqlx::sqlite::SqlitePool;
+use std::fmt;
+use std::sync::Arc;
 
 struct AppState {
-    docs: RwLock<Vec<Document>>,
+    db: SqlitePool,
 }
 
 #[tokio::main]
 async fn main() {
     let args = Args::parse();
 
+    let db_pool = SqlitePool::connect("sqlite://documents.db?mode=rwc")
+        .await
+        .expect("❌ Could not connect to the database");
+
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS documents (
+            id INTEGER PRIMARY KEY,
+            title TEXT NOT NULL,
+            status TEXT NOT NULL
+        )"
+    )
+        .execute(&db_pool)
+        .await
+        .expect("❌ Could not create table");
+
     let shared_state = Arc::new(AppState {
-        docs: RwLock::new(Vec::new()),
+        db: db_pool
     });
 
     let app = Router::new()
@@ -28,16 +45,20 @@ async fn main() {
 
     let address = format!("0.0.0.0:{}", args.port);
     let listener = tokio::net::TcpListener::bind(&address).await.unwrap();
-
     println!("🚀 DocuFlow Server active at http://{}", address);
 
     axum::serve(listener, app).await.unwrap();
 }
 
-async fn list_docs(State(state): State<Arc<AppState>>, ) -> Json<Vec<Document>> {
-    let docs = state.docs.read().unwrap();
+async fn list_docs(
+    State(state): State<Arc<AppState>>,
+) -> Json<Vec<Document>> {
+    let docs = sqlx::query_as::<_, Document>("SELECT id, title, status FROM documents")
+        .fetch_all(&state.db)
+        .await
+        .expect("❌ Failed to fetch documents");
 
-    Json(docs.clone())
+    Json(docs)
 }
 
 async fn root() -> &'static str {
@@ -48,16 +69,17 @@ async fn create_doc(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<Document>,
 ) -> Json<Document> {
-    let mut docs = state.docs.write().unwrap();
+    sqlx::query("INSERT INTO documents (id, title, status) VALUES (?, ?, ?)")
+        .bind(payload.id)
+        .bind(&payload.title)
+        .bind(&payload.status)
+        .execute(&state.db) // This is the crucial part!
+        .await
+        .expect("❌ Failed to insert document");
 
-    docs.push(payload.clone());
-    
-    println!("✅ Document added: {}", payload.title);
-
+    println!("✅ Document saved: {}", payload.title);
     Json(payload)
 }
-
-use clap::Parser;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -70,14 +92,21 @@ struct Args {
 }
 
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, sqlx::Type)]
+#[sqlx(rename_all = "PascalCase")]
 enum DocStatus {
     Draft,
     Reviewed,
-    Signed
+    Signed,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+impl From<DocStatus> for String {
+    fn from(status: DocStatus) -> Self {
+        format!("{:?}", status)
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
 struct Document {
     id: u32,
     title: String,

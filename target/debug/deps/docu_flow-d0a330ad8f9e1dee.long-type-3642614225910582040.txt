@@ -1,0 +1,2 @@
+fn(State<Arc<AppState>>, axum::Json<Document>) -> impl Future<Output = axum::Json<Document>> {create_doc}
+fn(State<Arc<AppState>>, axum::Json<Document>) -> impl Future<Output = axum::Json<Document>> {create_doc}: Handler<_, _>
