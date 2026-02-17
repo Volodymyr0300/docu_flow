@@ -1,11 +1,14 @@
-use axum::{routing::get, Router};
+use axum::{routing::get, Json, Router};
+use std::fmt;
+use serde::Serialize;
 
 #[tokio::main]
 async fn main() {
     let args = Args::parse();
 
     let app = Router::new()
-        .route("/", get(root));
+        .route("/", get(root))
+        .route("/doc", get(get_doc));
 
     let address = format!("0.0.0.0:{}", args.port);
     let listener = tokio::net::TcpListener::bind(&address).await.unwrap();
@@ -13,6 +16,16 @@ async fn main() {
     println!("🚀 DocuFlow Server active at http://{}", address);
 
     axum::serve(listener, app).await.unwrap();
+}
+
+async fn get_doc() -> Json<Document> {
+    let doc = Document {
+        id: 1,
+        title: String::from("Privacy Policy Update"),
+        status: DocStatus::Reviewed,
+    };
+    
+    Json(doc)
 }
 
 async fn root() -> &'static str {
@@ -31,22 +44,21 @@ struct Args {
     verbose: bool,
 }
 
-use std::fmt;
-use std::fmt::write;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
+enum DocStatus {
+    Draft,
+    Reviewed,
+    Signed
+}
+
+#[derive(Debug, Serialize)]
 struct Document {
     id: u32,
     title: String,
     status: DocStatus,
 }
 
-#[derive(Debug)]
-enum DocStatus {
-    Draft,
-    Reviewed,
-    Signed
-}
 
 impl fmt::Display for Document {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
