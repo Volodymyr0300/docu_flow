@@ -14,6 +14,10 @@
     <body>
         <div class="container">
             <h2>🚀 DocuFlow Log</h2>
+
+            <input type="text" id="search-bar" placeholder="🔍 Search by title..." onkeyup="filterDocs()">
+            <div id="doc-list">Loading documents...</div>
+
             <div id="doc-list">Loading documents...</div>
 
             <hr>
@@ -29,18 +33,43 @@
         </div>
 
         <script>
+            let allDocs = [];
             async function loadDocs() {
                 const res = await fetch('/docs');
-                const docs = await res.json();
+                allDocs = await res.json();
+                renderDocs(allDocs);
+                // const docs = await res.json();
+                // const list = document.getElementById('doc-list');
+                // list.innerHTML = docs.map(d => `
+                //         <div class="doc-item" style="display: flex; justify-content: space-between; align-items: center;">
+                //             <div>
+                //                 <strong>[#${d.id}] ${d.title}</strong> - <em>${d.status}</em>
+                //             </div>
+                //             <button onclick="deleteDoc(${d.id})" style="width: auto; background: #dc3545; padding: 5px 10px;">Delete"  </button>
+                //         </div>
+                //     `).join('') || 'No documents found.';
+            }
+
+            function renderDocs(docsToDisplay) {
                 const list = document.getElementById('doc-list');
-                list.innerHTML = docs.map(d => `
-                        <div class="doc-item" style="display: flex; justify-content: space-between; align-items: center;">
-                            <div>
-                                <strong>[#${d.id}] ${d.title}</strong> - <em>${d.status}</em>
-                            </div>
-                            <button onclick="deleteDoc(${d.id})" style="width: auto; background: #dc3545; padding: 5px 10px;">Delete"  </button>
+                list.innerHTML = docsToDisplay.map(d => `
+                    <div class="doc-item" style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong>[#${d.id}] ${d.title}</strong> - <em>${d.status}</em>
+
                         </div>
-                    `).join('') || 'No documents found.';
+                        <button onclick="deleteDoc(${d.id})" style="width: auto; background: #dc3545; padding: 5px 10px;">Delete</button>
+                    <div>
+            </div>
+        </div>
+                `).join(``) || `No documents matching your search.`;
+            }
+
+            function filterDocs() {
+                const searchTerm = document.getElementById('search-bar').value.toLowerCase();
+                const filtered = allDocs.filter(d => d.title.toLowerCase().includes(searchTerm)
+                );
+                renderDocs(filtered);
             }
 
             async function deleteDoc(id) {
