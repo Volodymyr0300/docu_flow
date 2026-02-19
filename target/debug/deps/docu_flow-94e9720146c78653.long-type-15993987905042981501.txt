@@ -1,0 +1,1 @@
+fn(State<Arc<AppState>>, std::path::Path) -> impl Future<Output = axum::http::StatusCode> {delete_doc}: Handler<_, _>

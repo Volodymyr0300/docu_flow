@@ -1,15 +1,15 @@
 use axum::{
-    extract::State,
-    routing::{get, post},
-    Json,
-    Router
+    extract::{State, Path},
+    routing::{get, post, delete},
+    Json, Router,
+    http::StatusCode,
 };
 use clap::Parser;
 use serde::{Serialize, Deserialize};
 use sqlx::sqlite::SqlitePool;
-use std::fmt;
 use std::sync::Arc;
 use tower_http::services::ServeDir;
+use std::fmt;
 
 struct AppState {
     db: SqlitePool,
@@ -41,6 +41,7 @@ async fn main() {
     let app = Router::new()
         .route("/docs", get(list_docs))
         .route("/docs", post(create_doc))
+        .route("/docs/{id}", delete(delete_doc))
         .fallback_service(ServeDir::new("static"))
         .with_state(shared_state);
 
@@ -62,10 +63,6 @@ async fn list_docs(
     Json(docs)
 }
 
-// async fn root() -> &'static str {
-//     "Welcome to DocuFlow: Legal Audit Log System"
-// }
-
 async fn create_doc(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<Document>,
@@ -80,6 +77,20 @@ async fn create_doc(
 
     println!("✅ Document saved: {}", payload.title);
     Json(payload)
+}
+
+async fn delete_doc(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<u32>,
+) -> StatusCode {
+    sqlx::query("DELETE FROM documents WHERE id = ?")
+        .bind(id)
+        .execute(&state.db)
+        .await
+        .expect("❌ Failed to delete document");
+
+    println!("🗑️ Deleted document ID: {}", id);
+    StatusCode::OK
 }
 
 #[derive(Parser, Debug)]

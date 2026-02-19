@@ -15,7 +15,7 @@
         <div class="container">
             <h2>🚀 DocuFlow Log</h2>
             <div id="doc-list">Loading documents...</div>
-    
+
             <hr>
             <h3>Add New Document</h3>
             <input type="number" id="doc-id" placeholder="ID (e.g. 5)">
@@ -27,26 +27,36 @@
             </select>
             <button onclick="addDocument()">Add to Log</button>
         </div>
-    
+
         <script>
             async function loadDocs() {
                 const res = await fetch('/docs');
                 const docs = await res.json();
                 const list = document.getElementById('doc-list');
                 list.innerHTML = docs.map(d => `
-                        <div class="doc-item">
-                            <strong>[#${d.id}] ${d.title}</strong> - <em>${d.status}</em>
+                        <div class="doc-item" style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong>[#${d.id}] ${d.title}</strong> - <em>${d.status}</em>
+                            </div>
+                            <button onclick="deleteDoc(${d.id})" style="width: auto; background: #dc3545; padding: 5px 10px;">Delete"  </button>
                         </div>
                     `).join('') || 'No documents found.';
             }
-    
+
+            async function deleteDoc(id) {
+                if (confirm(`Are you sure you want to delete document #${id}?`)) {
+                    await fetch(`/docs/${id}`, { method: 'DELETE' });
+                    loadDocs();
+                }
+            }
+
             async function addDocument() {
                 const payload = {
                     id: parseInt(document.getElementById('doc-id').value),
                     title: document.getElementById('doc-title').value,
                     status: document.getElementById('doc-status').value
                 };
-    
+
                 await fetch('/docs', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -54,7 +64,7 @@
                 });
                 loadDocs(); // Refresh the list
             }
-    
+
             loadDocs();
         </script>
     </body>
