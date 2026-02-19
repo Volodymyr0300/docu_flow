@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>DocuFlow | Legal Audit Log</title>
+        <style>
+            body {font-family: sans-serif; margin: 40px; background: #f4f4f4;}
+            .container { max-width: 600px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+            input, select, button { padding: 10px; margin: 5px 0; width: 100%; box-sizing: border-box; }
+            button { background: #007bff; color: white; border: none; cursor: pointer; }
+            .doc-item { border-bottom: 1px solid #eee; padding: 10px 0; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h2>🚀 DocuFlow Log</h2>
+            <div id="doc-list">Loading documents...</div>
+    
+            <hr>
+            <h3>Add New Document</h3>
+            <input type="number" id="doc-id" placeholder="ID (e.g. 5)">
+            <input type="text" id="doc-title" placeholder="Document Title">
+            <select id="doc-status">
+                <option value="Draft">Draft</option>
+                <option value="Reviewed">Reviewed</option>
+                <option value="Signed">Signed</option>
+            </select>
+            <button onclick="addDocument()">Add to Log</button>
+        </div>
+    
+        <script>
+            async function loadDocs() {
+                const res = await fetch('/docs');
+                const docs = await res.json();
+                const list = document.getElementById('doc-list');
+                list.innerHTML = docs.map(d => `
+                        <div class="doc-item">
+                            <strong>[#${d.id}] ${d.title}</strong> - <em>${d.status}</em>
+                        </div>
+                    `).join('') || 'No documents found.';
+            }
+    
+            async function addDocument() {
+                const payload = {
+                    id: parseInt(document.getElementById('doc-id').value),
+                    title: document.getElementById('doc-title').value,
+                    status: document.getElementById('doc-status').value
+                };
+    
+                await fetch('/docs', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                loadDocs(); // Refresh the list
+            }
+    
+            loadDocs();
+        </script>
+    </body>
+</html>

@@ -9,6 +9,7 @@ use serde::{Serialize, Deserialize};
 use sqlx::sqlite::SqlitePool;
 use std::fmt;
 use std::sync::Arc;
+use tower_http::services::ServeDir;
 
 struct AppState {
     db: SqlitePool,
@@ -38,9 +39,9 @@ async fn main() {
     });
 
     let app = Router::new()
-        .route("/", get(root))
         .route("/docs", get(list_docs))
         .route("/docs", post(create_doc))
+        .fallback_service(ServeDir::new("static"))
         .with_state(shared_state);
 
     let address = format!("0.0.0.0:{}", args.port);
@@ -61,9 +62,9 @@ async fn list_docs(
     Json(docs)
 }
 
-async fn root() -> &'static str {
-    "Welcome to DocuFlow: Legal Audit Log System"
-}
+// async fn root() -> &'static str {
+//     "Welcome to DocuFlow: Legal Audit Log System"
+// }
 
 async fn create_doc(
     State(state): State<Arc<AppState>>,
