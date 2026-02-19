@@ -1,6 +1,6 @@
 use axum::{
     extract::{State, Path},
-    routing::{get, post, delete},
+    routing::{get, post, delete, patch},
     Json, Router,
     http::StatusCode,
 };
@@ -42,6 +42,7 @@ async fn main() {
         .route("/docs", get(list_docs))
         .route("/docs", post(create_doc))
         .route("/docs/{id}", delete(delete_doc))
+        .route("/docs/{id}/status", patch(update_doc_status))
         .fallback_service(ServeDir::new("static"))
         .with_state(shared_state);
 
@@ -92,6 +93,23 @@ async fn delete_doc(
     println!("🗑️ Deleted document ID: {}", id);
     StatusCode::OK
 }
+
+async fn update_doc_status(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<u32>,
+    Json(new_status): Json<DocStatus>,
+) -> StatusCode {
+    sqlx::query("UPDATE documents SET status = ? WHERE id = ?")
+        .bind(&new_status)
+        .bind(id)
+        .execute(&state.db)
+        .await
+        .expect("❌ Failed to update document status");
+
+    println!("Update: Document {} is now {:?}", id, new_status);
+    StatusCode::OK
+}
+
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
