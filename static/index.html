@@ -9,6 +9,17 @@
             input, select, button { padding: 10px; margin: 5px 0; width: 100%; box-sizing: border-box; }
             button { background: #007bff; color: white; border: none; cursor: pointer; }
             .doc-item { border-bottom: 1px solid #eee; padding: 10px 0; }
+
+            .badge {
+                padding: 4px 8px;
+                border-radius: 12px;
+                font-size: 0.8em;
+                font-weight: bold;
+                color: white;
+            }
+            .bg-draft { background-color: #6c757d; }    /* Gray */
+            .bg-reviewed { background-color: #17a2b8; } /* Cyan */
+            .bg-signed { background-color: #28a745; }   /* Green */
         </style>
     </head>
     <body>
@@ -48,17 +59,24 @@
                 const list = document.getElementById('doc-list');
                 if (!list) return;
 
-                list.innerHTML = docsToDisplay.map(d => `
-                    <div class="doc-item" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ddd; padding: 10px 0;">
-                        <div>
-                            <strong>[#${d.id}] ${d.title}</strong> - <em id="status-${d.id}">${d.status}</em>
+                list.innerHTML = docsToDisplay.map(d => {
+                    // Determine the badge class based on status
+                    const badgeClass = `bg-${d.status.toLowerCase()}`;
+
+                    return `
+                        <div class="doc-item" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ddd; padding: 10px 0;">
+                            <div>
+                                <strong>[#${d.id}] ${d.title}</strong>
+                                <span class="badge ${badgeClass}">${d.status}</span>
+                            </div>
+                            <div>
+                                ${d.status !== 'Signed' ? `<button onclick="updateStatus(${d.id}, 'Signed')" style="width: auto; background: #28a745; margin-right: 5px; padding: 5px 10px;">Mark Signed</button>` : ''}
+                                <button onclick="renameDoc(${d.id}, '${d.title}')" style="width: auto; background: #ffc107; color: black; margin-right: 5px; padding: 5px 10px;">Rename</button>
+                                <button onclick="deleteDoc(${d.id})" style="width: auto; background: #dc3545; padding: 5px 10px;">Delete</button>
+                            </div>
                         </div>
-                        <div>
-                            ${d.status !== 'Signed' ? `<button onclick="updateStatus(${d.id}, 'Signed')" style="width: auto; background: #28a745; margin-right: 5px; padding: 5px 10px;">Mark Signed</button>` : ''}
-                            <button onclick="deleteDoc(${d.id})" style="width: auto; background: #dc3545; padding: 5px 10px;">Delete</button>
-                        </div>
-                    </div>
-                `).join('') || 'No documents matching your search.';
+                    `;
+                }).join('') || 'No documents matching your search.';
             }
 
             async function updateStatus(id, newStatus) {
@@ -72,7 +90,9 @@
 
             function filterDocs() {
                 const searchTerm = document.getElementById('search-bar').value.toLowerCase();
-                const filtered = allDocs.filter(d => d.title.toLowerCase().includes(searchTerm)
+                const filtered = allDocs.filter(d =>
+                    d.title.toLowerCase().includes(searchTerm) ||
+                    d.id.toString() === searchTerm
                 );
                 renderDocs(filtered);
             }
@@ -121,6 +141,18 @@
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
+            }
+
+            async function renameDoc(id, currentTitle) {
+                const newTitle = prompt("Enter new document title", currentTitle);
+                if (newTitle && newTitle !== currentTitle) {
+                    await fetch(`/docs/${id}/rename`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(newTitle),
+                    });
+                    await loadDocs();
+                }
             }
 
             loadDocs();

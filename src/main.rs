@@ -43,6 +43,7 @@ async fn main() {
         .route("/docs", post(create_doc))
         .route("/docs/{id}", delete(delete_doc))
         .route("/docs/{id}/status", patch(update_doc_status))
+        .route("/docs/{id}/rename", patch(rename_doc))
         .fallback_service(ServeDir::new("static"))
         .with_state(shared_state);
 
@@ -110,6 +111,21 @@ async fn update_doc_status(
     StatusCode::OK
 }
 
+async fn rename_doc(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<u32>,
+    Json(new_title): Json<String>,
+) -> StatusCode {
+    sqlx::query("UPDATE documents SET title = ? WHERE id = ?")
+        .bind(&new_title)
+        .bind(id)
+        .execute(&state.db)
+        .await
+        .expect("❌ Failed to rename document");
+
+    println!("Rename: Document {} is now '{}'", id, new_title);
+    StatusCode::OK
+}
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
