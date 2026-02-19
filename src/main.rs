@@ -10,6 +10,7 @@ use sqlx::sqlite::SqlitePool;
 use std::sync::Arc;
 use tower_http::services::ServeDir;
 use std::fmt;
+use chrono::{DateTime, Utc};
 
 struct AppState {
     db: SqlitePool,
@@ -27,7 +28,8 @@ async fn main() {
         "CREATE TABLE IF NOT EXISTS documents (
             id INTEGER PRIMARY KEY,
             title TEXT NOT NULL,
-            status TEXT NOT NULL
+            status TEXT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )"
     )
         .execute(&db_pool)
@@ -57,7 +59,7 @@ async fn main() {
 async fn list_docs(
     State(state): State<Arc<AppState>>,
 ) -> Json<Vec<Document>> {
-    let docs = sqlx::query_as::<_, Document>("SELECT id, title, status FROM documents")
+    let docs = sqlx::query_as::<_, Document>("SELECT id, title, status, created_at FROM documents")
         .fetch_all(&state.db)
         .await
         .expect("❌ Failed to fetch documents");
@@ -67,8 +69,8 @@ async fn list_docs(
 
 async fn create_doc(
     State(state): State<Arc<AppState>>,
-    Json(payload): Json<Document>,
-) -> Json<Document> {
+    Json(payload): Json<CreateDocument>,
+) -> Json<CreateDocument> {
     sqlx::query("INSERT INTO documents (id, title, status) VALUES (?, ?, ?)")
         .bind(payload.id)
         .bind(&payload.title)
@@ -157,8 +159,15 @@ struct Document {
     id: u32,
     title: String,
     status: DocStatus,
+    created_at: Option<DateTime<Utc>>,
 }
 
+#[derive(Serialize, Deserialize)]
+struct CreateDocument {
+    id: u32,
+    title: String,
+    status: DocStatus,
+}
 
 impl fmt::Display for Document {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

@@ -5,7 +5,7 @@
         <title>DocuFlow | Legal Audit Log</title>
         <style>
             body {font-family: sans-serif; margin: 40px; background: #f4f4f4;}
-            .container { max-width: 600px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+            .container { max-width: 900px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin: 40px auto;}
             input, select, button { padding: 10px; margin: 5px 0; width: 100%; box-sizing: border-box; }
             button { background: #007bff; color: white; border: none; cursor: pointer; }
             .doc-item { border-bottom: 1px solid #eee; padding: 10px 0; }
@@ -60,14 +60,16 @@
                 if (!list) return;
 
                 list.innerHTML = docsToDisplay.map(d => {
-                    // Determine the badge class based on status
                     const badgeClass = `bg-${d.status.toLowerCase()}`;
+                    const dateTime = d.created_at ? new Date(d.created_at).toLocaleString() : 'No date';
 
                     return `
                         <div class="doc-item" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ddd; padding: 10px 0;">
                             <div>
                                 <strong>[#${d.id}] ${d.title}</strong>
                                 <span class="badge ${badgeClass}">${d.status}</span>
+                                <br>
+                                <small style="color: #666;">Created: ${dateTime}</small>
                             </div>
                             <div>
                                 ${d.status !== 'Signed' ? `<button onclick="updateStatus(${d.id}, 'Signed')" style="width: auto; background: #28a745; margin-right: 5px; padding: 5px 10px;">Mark Signed</button>` : ''}
@@ -127,9 +129,9 @@
 
                 const headers = ["ID", "Title", "Status"];
 
-                const rows = allDocs.map(d => `${d.id}, "${d.title}", ${d.status}`);
+                const rows = allDocs.map(d => `${d.id},"${d.title}",${d.status}`);
 
-                const csvContent = [headers.join(","), ...rows].join("/n");
+                const csvContent = [headers.join(","), ...rows].join("\n");
 
                 const blob = new Blob([csvContent], { type: 'text/csv' });
                 const url = window.URL.createObjectURL(blob);
