@@ -16,6 +16,7 @@
             <h2>🚀 DocuFlow Log</h2>
 
             <input type="text" id="search-bar" placeholder="🔍 Search by title..." onkeyup="filterDocs()">
+            <button onclick="exportToCSV()" style="width: auto; background: #6c757d; margin-left: 10px;">📥 Export CSV</button>
             <div id="doc-list">Loading documents...</div>
 
             <hr>
@@ -96,6 +97,30 @@
                     body: JSON.stringify(payload)
                 });
                 await loadDocs();
+            }
+
+            function exportToCSV() {
+                if (allDocs.length === 0) {
+                    alert("Nodata to export!");
+                    return;
+                }
+
+                const headers = ["ID", "Title", "Status"];
+
+                const rows = allDocs.map(d => `${d.id}, "${d.title}", ${d.status}`);
+
+                const csvContent = [headers.join(","), ...rows].join("/n");
+
+                const blob = new Blob([csvContent], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+
+                const a = document.createElement('a');
+                a.setAttribute('hidden', '');
+                a.setAttribute('href', url);
+                a.setAttribute('download', 'legal_audit_log.csv');
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
             }
 
             loadDocs();
