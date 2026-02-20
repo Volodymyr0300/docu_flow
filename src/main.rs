@@ -6,7 +6,7 @@ use axum::{
 };
 use clap::Parser;
 use serde::{Serialize, Deserialize};
-use sqlx::sqlite::{SqlitePool, SqlitePoolOptions};
+use sqlx::sqlite::{SqlitePool, /*SqlitePoolOptions*/};
 use std::sync::Arc;
 use tower_http::services::ServeDir;
 use std::fmt;
