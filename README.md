@@ -1,11 +1,21 @@
-# docu_flow
+# 🚀 DocuFlow | Legal Audit Log
 
-🚀 Quick Start
+A high-performance, full-stack document management system built with **Rust** and **SQLite**. Designed for legal professionals and managers to maintain a transparent audit trail of document lifecycles.
 
-Ensure you have Rust installed.
+## ✨ Features
+* **Full CRUD Operations:** Create, Rename, and Delete document entries.
+* **Status Workflow:** Transition documents through `Draft`, `Reviewed`, and `Signed` statuses with visual color-coded badges.
+* **Audit Trail:** Automatic timestamps for every entry to ensure compliance and record-keeping.
+* **Advanced Search:** Filter the log instantly by Document Title or specific ID.
+* **CSV Export:** One-click data extraction for management reporting and spreadsheet analysis.
 
-Clone this repo: git clone https://github.com/your-username/docu_flow.git
+## 🛠️ Tech Stack
+* **Backend:** Rust (Axum Framework, Tokio Runtime)
+* **Database:** SQLite with SQLx (Asynchronous SQL)
+* **Frontend:** Vanilla JavaScript, HTML5, CSS3
+* **Date/Time:** Chrono crate for ISO-8601 compliant timestamps
 
-Run the app: cargo run
-
-Open http://localhost:3000 in your browser.
+## 🚀 How to Run Locally
+1. Clone the repository:
+   ```bash
+   git clone [https://github.com/Volodymyr0300/docu_flow.git](https://github.com/Volodymyr0300/docu_flow.git)
