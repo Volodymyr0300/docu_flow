@@ -6,7 +6,7 @@ use axum::{
 };
 use clap::Parser;
 use serde::{Serialize, Deserialize};
-use sqlx::sqlite::SqlitePool;
+use sqlx::sqlite::{SqlitePool, SqlitePoolOptions};
 use std::sync::Arc;
 use tower_http::services::ServeDir;
 use std::fmt;
@@ -19,6 +19,8 @@ struct AppState {
 #[tokio::main]
 async fn main() {
     let args = Args::parse();
+
+    let port = std::env::var("PORT").unwrap_or_else(|_| args.port.to_string());
 
     let db_pool = SqlitePool::connect("sqlite://documents.db?mode=rwc")
         .await
@@ -49,7 +51,7 @@ async fn main() {
         .fallback_service(ServeDir::new("static"))
         .with_state(shared_state);
 
-    let address = format!("0.0.0.0:{}", args.port);
+    let address = format!("0.0.0.0:{}", port);
     let listener = tokio::net::TcpListener::bind(&address).await.unwrap();
     println!("🚀 DocuFlow Server active at http://{}", address);
 
