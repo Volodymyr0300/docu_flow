@@ -4,6 +4,49 @@
         <meta charset="UTF-8">
         <title>DocuFlow | Legal Audit Log</title>
         <style>
+            :root {
+                --primary: #2563eb;
+                --bg: #f8fafc;
+                --card: #ffffff;
+                --text: #1e293b;
+            }
+
+            body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; }
+
+            .app-container {
+                display: grid;
+                grid-template-columns: 250px 1fr;
+                gap: 20px;
+                max-width: 1200px;
+                margin: 0 auto;
+                padding: 20px;
+            }
+
+            .sidebar {
+                background: var(--card);
+                padding: 20px;
+                border-radius: 12px;
+                box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+                height: fit-content;
+            }
+
+            .main-content {
+                background: var(--card);
+                padding: 30px;
+                border-radius: 12px;
+                box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            }
+
+            .doc-card {
+                border: 1px solid #e2e8f0;
+                margin-bottom: 15px;
+                padding: 15px;
+                border-radius: 8px;
+                transition: transform 0.2s;
+            }
+
+            .doc-card:hover { transform: translateY(-2px); border-color: var(--primary); }
+
             body {font-family: sans-serif; margin: 40px; background: #f4f4f4;}
             .container { max-width: 900px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin: 40px auto;}
             input, select, button { padding: 10px; margin: 5px 0; width: 100%; box-sizing: border-box; }
@@ -20,29 +63,158 @@
             .bg-draft { background-color: #6c757d; }    /* Gray */
             .bg-reviewed { background-color: #17a2b8; } /* Cyan */
             .bg-signed { background-color: #28a745; }   /* Green */
+
+            #login-overlay {
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000;
+            }
+            .login-card { background: white; padding: 30px; border-radius: 12px; width: 300px; text-align: center; }
+
         </style>
     </head>
     <body>
-        <div class="container">
-            <h2>🚀 DocuFlow Log</h2>
+        <div id="login-overlay">
+            <div class="login-card">
+                <h2 id="auth-title">DocuFlow Login</h2>
+                <input type="text" id="login-username" placeholder="Username">
+                <input type="password" id="login-password" placeholder="Password">
 
-            <input type="text" id="search-bar" placeholder="🔍 Search by title..." onkeyup="filterDocs()">
-            <button onclick="exportToCSV()" style="width: auto; background: #6c757d; margin-left: 10px;">📥 Export CSV</button>
-            <div id="doc-list">Loading documents...</div>
+                <button id="login-btn" onclick="attemptLogin()">Login</button>
+                <button id="register-btn" onclick="attemptRegister()" style="display: none; background: #28a745;">Create Account</button>
 
-            <hr>
-            <h3>Add New Document</h3>
-            <input type="number" id="doc-id" placeholder="ID (e.g. 5)">
-            <input type="text" id="doc-title" placeholder="Document Title">
-            <select id="doc-status">
-                <option value="Draft">Draft</option>
-                <option value="Reviewed">Reviewed</option>
-                <option value="Signed">Signed</option>
-            </select>
-            <button onclick="addDocument()">Add to Log</button>
+                <p id="login-error" style="color: red; display: none;">Error message here</p>
+                <hr>
+                <a href="#" id="toggle-auth" onclick="toggleAuthMode()" style="font-size: 0.9em; color: var(--primary);">Don't have an account? Sign up</a>
+            </div>
+        </div>
+        <div class="app-container">
+            <div class="sidebar">
+                <h3>➕ Add Document</h3>
+                <input type="number" id="doc-id" placeholder="ID (e.g. 5)">
+                <input type="text" id="doc-title" placeholder="Document Title">
+                <select id="doc-status">
+                    <option value="Draft">Draft</option>
+                    <option value="Reviewed">Reviewed</option>
+                    <option value="Signed">Signed</option>
+                </select>
+                <button onclick="addDocument()">Add to Log</button>
+                <hr>
+                <button onclick="exportToCSV()" style="background: #6c757d;">Export CSV</button>
+            </div>
+
+            <div class="main-content">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h2>🚀 DocuFlow Log</h2>
+                    <div style="display: flex; align-items: center;">
+                        <span id="user-display" style="font-weight: bold; color: var(--primary); margin-right: 15px;"></span>
+                        <button onclick="logout()" style="width: auto; background: #dc3545; padding: 5px 10px; font-size: 0.8em; margin: 0;">Logout</button>
+                    </div>
+                </div>
+                <input type="text" id="search-bar" placeholder="Search by title or ID..." onkeyup="filterDocs()">
+                <div id="doc-list" style="margin-top: 20px;">Loading documents...</div>
+            </div>
         </div>
 
         <script>
+            let currentUser = localStorage.getItem('docuUser');
+            let isLoginMode = true;
+
+            if (currentUser && currentUser !== "null" && currentUser !== "Anonymous_Lawyer") {
+                hideLoginOverlay();
+                loadDocs();
+            } else {
+                showLoginOverlay();
+            }
+
+            function toggleAuthMode() {
+                isLoginMode = !isLoginMode;
+                const title = document.getElementById('auth-title');
+                const loginBtn = document.getElementById('login-btn');
+                const registerBtn = document.getElementById('register-btn');
+                const toggleLink = document.getElementById('toggle-auth');
+                const errorEl = document.getElementById('login-error');
+
+                errorEl.style.display = 'none';
+
+                if (isLoginMode) {
+                    title.innerText = "DocuFlow Login";
+                    loginBtn.style.display = 'block';
+                    registerBtn.style.display = 'none';
+                    toggleLink.innerText = "Don't have an account? Sign up";
+                } else {
+                    title.innerText = "Create Account";
+                    loginBtn.style.display = 'none';
+                    registerBtn.style.display = 'block';
+                    toggleLink.innerText = "Already have an account? Login";
+                }
+            }
+
+            function hideLoginOverlay() {
+                document.getElementById('login-overlay').style.display = 'none';
+                document.getElementById('user-display').innerText = `User: ${currentUser}`;
+            }
+
+            function showLoginOverlay() {
+                document.getElementById('login-overlay').style.display = 'flex';
+            }
+
+            async function attemptLogin() {
+                const user = document.getElementById('login-username').value;
+                const pass = document.getElementById('login-password').value;
+                const errorEl = document.getElementById('login-error');
+
+                try {
+                    const res = await fetch('/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username: user, password: pass })
+                    });
+
+                    if (res.ok) {
+                        const data = await res.json();
+                        localStorage.setItem('docuUser', data.username);
+                        currentUser = data.username;
+                        hideLoginOverlay();
+                        loadDocs();
+                    } else {
+                        errorEl.innerText = "Invalid username or password";
+                        errorEl.style.display = 'block';
+                    }
+                } catch (err) {
+                    errorEl.innerText = "Server connection failed";
+                    errorEl.style.display = 'block';
+                }
+            }
+
+            async function attemptRegister() {
+                const user = document.getElementById('login-username').value;
+                const pass = document.getElementById('login-password').value;
+                const errorEl = document.getElementById('login-error');
+
+                if (!user || !pass) {
+                    errorEl.innerText = "Please fill in all fields";
+                    errorEl.style.display = 'block';
+                    return;
+                }
+
+                const res = await fetch('/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: user, password: pass })
+                });
+
+                if (res.ok) {
+                    alert("Account created! You can now login.");
+                    toggleAuthMode(); // Switch back to login mode automatically
+                } else if (res.status === 409) {
+                    errorEl.innerText = "Username already taken";
+                    errorEl.style.display = 'block';
+                } else {
+                    errorEl.innerText = "Registration failed";
+                    errorEl.style.display = 'block';
+                }
+            }
+
             let allDocs = [];
 
             async function loadDocs() {
@@ -85,7 +257,10 @@
                 await fetch(`/docs/${id}/status`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(newStatus)
+                    body: JSON.stringify({
+                        status: newStatus,
+                        user: currentUser
+                    })
                 });
                 await loadDocs();
             }
@@ -110,7 +285,8 @@
                 const payload = {
                     id: parseInt(document.getElementById('doc-id').value),
                     title: document.getElementById('doc-title').value,
-                    status: document.getElementById('doc-status').value
+                    status: document.getElementById('doc-status').value,
+                    created_by: currentUser
                 };
 
                 await fetch('/docs', {
@@ -155,6 +331,12 @@
                     });
                     await loadDocs();
                 }
+            }
+
+            function logout() {
+                localStorage.removeItem('docuUser');
+                currentUser = null;
+                location.reload();
             }
 
             loadDocs();

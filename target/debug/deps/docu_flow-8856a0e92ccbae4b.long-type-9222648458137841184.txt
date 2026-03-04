@@ -1,0 +1,2 @@
+fn(State<Arc<AppState>>, axum::extract::Path<u32>, axum::Json<StatusUpdate>) -> impl Future<Output = axum::http::StatusCode> {update_doc_status}
+fn(State<Arc<AppState>>, axum::extract::Path<u32>, axum::Json<StatusUpdate>) -> impl Future<Output = axum::http::StatusCode> {update_doc_status}: Handler<_, _>
